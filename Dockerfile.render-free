@@ -1,0 +1,22 @@
+# Headroom Render-free squeeze layer.
+#
+# Pure-wheel additions on the published image — no Rust rebuild, so the
+# Render build takes ~2 min (not ~25) and the cold pull stays small:
+#   - trafilatura: HTML article extraction for web content (no model, MBs)
+# torch-free throughout. Memory's ONNX embedder (~86 MB) needs nothing new:
+# onnxruntime/tokenizers/huggingface_hub already ship in [proxy].
+# Deliberately absent (measured): Kompress (OOM >512 MB), fastembed
+# (semantic relevance costs ~100 MB RSS next to the memory embedder — BM25
+# covers exact identifiers; re-add it instead of --memory if you prefer
+# semantic ranking over persistent memory), Redis CCR (no public
+# headroom.ccr_backend provider), mem0/Qdrant memory (2 cloud accounts;
+# local ONNX memory below covers it).
+#
+# Upgrades: :latest floats (rebuild redeploys upstream). To pin, use a
+# branch tag (main/slim/nonroot) or sha tag and bump deliberately.
+
+FROM ghcr.io/headroomlabs-ai/headroom:latest
+# --user: base runs as nonroot; no root dance needed.
+RUN python -m pip install --no-cache-dir --user \
+      "trafilatura>=1.6.0"
+USER nonroot

@@ -1,0 +1,69 @@
+# Headroom on Render Free — squeezed: memory + HTML extraction on 512 MB.
+#
+# WHY THIS SHAPE
+# - runtime: docker, dockerfilePath: Dockerfile.render-free — a pure-wheel
+#   layer (trafilatura) on the pinned published image. ~2 min build, no
+#   Rust rebuild, small cold pull. Bump the tag to upgrade.
+# - --memory with the ONNX embedder (auto-selected, ~86 MB, no torch):
+#   cross-agent memory on the ephemeral disk. Wiped on spin-down, but the
+#   24/7 keepalive below means it survives in practice.
+# - No --stateless (it disables memory). Ephemeral writes are fine — they
+#   succeed and simply don't survive a cold restart.
+# - Single worker, tiny pools: 0.1 CPU / 512 MB shared box.
+# - Kompress ML is OFF here (HEADROOM_DISABLE_KOMPRESS): measured 613-788 MB
+#   RSS with the ONNX INT8 session vs 512 MB free. JSON/code need no model.
+#   Measured on 0.37.0: JSON 69% (SmartCrusher), code 54% (AST), prose
+#   passes through (~20% forgone on the small prose share of agent traffic).
+#   Upgrade: on a ≥2 GB plan, drop the DISABLE var and add
+#   HEADROOM_KOMPRESS_BACKEND=onnx, _ONNX_INTRA_THREADS=1,
+#   _ONNX_INTER_THREADS=1, _MAX_CONCURRENT=1, _CANARY_SECONDS=15.
+#   (Baking the model into the image also removes the cold-start download;
+#   see Dockerfile HEADROOM_EXTRAS.)
+#
+# WHAT YOU KEEP vs LOSE (coding-agent traffic)
+# Keep: JSON/log ~69% crush, AST code ~54%, cache alignment, BM25
+# relevance, ONNX cross-agent memory, HTML extraction.
+# Lose: prose ML (~20% on the small prose share), image ML routing
+# (preserved safely), learning (needs durable disk).
+#
+# KEEPALIVE (required for 24/7): free spins down after 15 min idle. Ping
+# https://<name>.onrender.com/readyz every 10 min (UptimeRobot). 24/7 ≈ 720 h
+# of the 750 h/mo free quota — one service fits, two won't.
+services:
+  - type: web
+    runtime: docker
+    name: headroom
+    plan: free
+    dockerfilePath: ./Dockerfile.render-free
+    healthCheckPath: /readyz
+    # Replaces image CMD; ENTRYPOINT (headroom proxy) stays.
+    dockerCommand: --host 0.0.0.0 --memory
+    envVars:
+      # Pin the bind port — Render routes to PORT (default 10000).
+      - key: PORT
+        value: 10000
+      - key: HEADROOM_PORT
+        value: 10000
+      # Ephemeral disk holds memory/CCR between restarts (see header).
+      # 512 MB / 0.1 CPU bounds.
+      - key: HEADROOM_WORKERS
+        value: 1
+      - key: HEADROOM_LIMIT_CONCURRENCY
+        value: 20
+      - key: HEADROOM_MAX_CONNECTIONS
+        value: 20
+      - key: HEADROOM_COMPRESSION_MAX_WORKERS
+        value: 2
+      # Kompress ML off: see header (OOM above 512 MB measured). Also skips
+      # the 262 MB cold-start model download entirely.
+      - key: HEADROOM_DISABLE_KOMPRESS
+        value: true
+      # No background PyPI check / telemetry on a metered free box.
+      - key: HEADROOM_UPDATE_CHECK
+        value: off
+      - key: HEADROOM_BEACON
+        value: off
+      # Public URL — never leave the data plane open. Clients send this as
+      # their API key / bearer token.
+      - key: HEADROOM_PROXY_TOKEN
+        generateValue: true
