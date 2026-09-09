@@ -16,7 +16,7 @@
 # branch tag (main/slim/nonroot) or sha tag and bump deliberately.
 
 FROM ghcr.io/headroomlabs-ai/headroom:latest
-# --user: base runs as nonroot; no root dance needed.
-RUN python -m pip install --no-cache-dir --user \
+# Inherit the base image's user (root): system install is visible to all,
+# and some base tags have no nonroot user (instant exit, no logs).
+RUN python -m pip install --no-cache-dir \
       "trafilatura>=1.6.0"
-USER nonroot
