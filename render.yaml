@@ -37,7 +37,7 @@ services:
     dockerfilePath: ./Dockerfile.render-free
     healthCheckPath: /readyz
     # Replaces image CMD; ENTRYPOINT (headroom proxy) stays.
-    dockerCommand: --host 0.0.0.0 --memory
+    dockerCommand: --host 0.0.0.0 --stateless
     envVars:
       # Pin the bind port — Render routes to PORT (default 10000).
       - key: PORT
