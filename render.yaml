@@ -37,7 +37,7 @@ services:
     dockerfilePath: ./Dockerfile.render-free
     healthCheckPath: /readyz
     # Render runs this without a shell: must be a path, flags live in start.sh.
-    dockerCommand: ./start.sh
+    dockerCommand: /start.sh
     envVars:
       # Pin the bind port — Render routes to PORT (default 10000).
       - key: PORT

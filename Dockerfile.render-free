@@ -18,5 +18,6 @@
 FROM ghcr.io/headroomlabs-ai/headroom:latest
 # Inherit the base image's user (root): system install is visible to all,
 # and some base tags have no nonroot user (instant exit, no logs).
+COPY start.sh /start.sh
 RUN python -m pip install --no-cache-dir \
       "trafilatura>=1.6.0"
