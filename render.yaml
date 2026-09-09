@@ -36,8 +36,8 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile.render-free
     healthCheckPath: /readyz
-    # Replaces image CMD; ENTRYPOINT (headroom proxy) stays.
-    dockerCommand: sh -c "whoami; echo PORT=$PORT; headroom proxy --host 0.0.0.0 --stateless; echo EXIT=$?"
+    # Render runs this without a shell: must be a path, flags live in start.sh.
+    dockerCommand: ./start.sh
     envVars:
       # Pin the bind port — Render routes to PORT (default 10000).
       - key: PORT
