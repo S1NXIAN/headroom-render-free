@@ -1,8 +1,5 @@
 #!/bin/sh
-# Verbose bootstrap: Render swallows startup failures, so narrate everything.
-set -x
-echo "STARTSH alive pwd=$(pwd) user=$(whoami 2>&1) PORT=${PORT:-unset}"
-ls -la
-echo "headroom=$(command -v headroom 2>&1)"
-echo "python=$(command -v python 2>&1)"
+# Render runs dockerCommand with no shell and no word-splitting, so the
+# proxy flags live here (an absolute path), not in render.yaml.
+echo "start.sh: launching headroom proxy on PORT=${PORT:-10000}"
 exec headroom proxy --host 0.0.0.0 --port "${PORT:-10000}" --memory
